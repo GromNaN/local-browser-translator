@@ -10,14 +10,14 @@ Local in-browser translation using Chrome's built-in [Prompt API](https://develo
 
 ## Features
 
-- Translate between 25+ languages
+- Translate between 8 languages: French, English, German, Spanish, Portuguese, Italian, Dutch, Polish
 - Language register: Neutral / Formal / Informal / Technical
 - Auto-detect source language
 - Auto-translation on input (1 s debounce)
 - Click any word in the translation to get alternatives
 - Global translation alternatives panel
 - Fully offline after model download
-- UI available in 13 languages
+- UI available in 8 languages
 
 ## Files
 
