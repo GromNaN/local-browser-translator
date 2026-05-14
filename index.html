@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="title">Traduction Gemini Nano</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: .75rem 1rem;
+      gap: .5rem;
+    }
+
+    .top-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .top-bar label {
+      font-size: .8rem;
+      color: #a0aec0;
+    }
+
+    #ui-lang {
+      padding: .3rem .5rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: .82rem;
+      background: white;
+      color: #4a5568;
+      cursor: pointer;
+    }
+
+    #ui-lang:focus {
+      outline: none;
+      border-color: #4299e1;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1a202c;
+    }
+
+    header p {
+      margin-top: .4rem;
+      color: #718096;
+      font-size: .95rem;
+    }
+
+    #api-status {
+      width: 100%;
+      padding: .75rem 1rem;
+      border-radius: 8px;
+      font-size: .9rem;
+      display: none;
+    }
+
+    #api-status.error {
+      display: block;
+      background: #fff5f5;
+      border: 1px solid #fc8181;
+      color: #c53030;
+    }
+
+    #api-status.warning {
+      display: block;
+      background: #fffbeb;
+      border: 1px solid #f6ad55;
+      color: #92400e;
+    }
+
+    #api-status.ok {
+      display: block;
+      background: #f0fff4;
+      border: 1px solid #68d391;
+      color: #276749;
+    }
+
+    .card {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lang-bar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .75rem 1rem;
+      background: #f7fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .lang-bar label {
+      font-size: .8rem;
+      color: #718096;
+      white-space: nowrap;
+    }
+
+    .lang-bar select {
+      flex: 1;
+      padding: .4rem .6rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: .9rem;
+      background: white;
+      cursor: pointer;
+      color: #2d3748;
+    }
+
+    .lang-bar select:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 2px rgba(66,153,225,.3);
+    }
+
+    .swap-btn {
+      background: none;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: .4rem .6rem;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #4a5568;
+      transition: background .15s;
+    }
+
+    .swap-btn:hover { background: #edf2f7; }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 600px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .panel:first-child {
+      border-right: 1px solid #e2e8f0;
+    }
+
+    .panel-header {
+      padding: .5rem 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #a0aec0;
+      background: #fafafa;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #detected-lang {
+      font-size: .75rem;
+      color: #4299e1;
+      font-weight: 500;
+      font-style: italic;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      padding: 1rem;
+      border: none;
+      resize: none;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #2d3748;
+      background: transparent;
+      overflow-y: auto;
+    }
+
+    textarea:focus { outline: none; }
+
+    #target-text {
+      background: #fafafa;
+      color: #4a5568;
+    }
+
+    .panel-footer {
+      padding: .5rem 1rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: .5rem;
+      border-top: 1px solid #e2e8f0;
+      min-height: 44px;
+    }
+
+    #char-count {
+      font-size: .8rem;
+      color: #a0aec0;
+    }
+
+    .copy-btn, .alt-btn {
+      background: none;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: .3rem .65rem;
+      font-size: .8rem;
+      color: #718096;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .copy-btn:hover, .alt-btn:hover { background: #edf2f7; }
+    .copy-btn:disabled, .alt-btn:disabled { opacity: .4; cursor: default; }
+
+    /* ── Register select ── */
+    #register-sel {
+      padding: .4rem .6rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: .85rem;
+      background: white;
+      cursor: pointer;
+      color: #2d3748;
+    }
+    #register-sel:focus { outline: none; border-color: #4299e1; }
+
+    /* ── Target display (div replacing readonly textarea) ── */
+    .target-display {
+      width: 100%;
+      min-height: 0;
+      padding: 1rem;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #4a5568;
+      background: #fafafa;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .target-display:empty::before {
+      content: attr(data-placeholder);
+      color: #a0aec0;
+      pointer-events: none;
+    }
+
+    /* ── Clickable word spans ── */
+    .word-span {
+      cursor: pointer;
+      border-radius: 3px;
+      padding: 1px 1px;
+      transition: background .1s;
+    }
+    .word-span:hover  { background: #e2e8f0; }
+    .word-span.active { background: #bee3f8; }
+
+    /* ── Word alternatives popup ── */
+    #word-popup {
+      position: fixed;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+      padding: .35rem;
+      z-index: 200;
+      min-width: 130px;
+      max-width: 260px;
+      display: none;
+    }
+    .popup-title {
+      font-size: .68rem;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: .2rem .5rem .35rem;
+    }
+    .popup-alt-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: .35rem .6rem;
+      background: none;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: .9rem;
+      color: #2d3748;
+      transition: background .1s;
+    }
+    .popup-alt-btn:hover { background: #edf2f7; }
+    .popup-loading {
+      padding: .4rem .6rem;
+      font-size: .82rem;
+      color: #a0aec0;
+      font-style: italic;
+    }
+
+    /* ── Global alternatives section ── */
+    #alt-section {
+      border-top: 1px solid #e2e8f0;
+      background: #f7fafc;
+      padding: .75rem 1rem;
+      display: none;
+    }
+    .alt-section-title {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #a0aec0;
+      margin-bottom: .6rem;
+    }
+    .alt-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: .65rem 1rem;
+      margin-bottom: .5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+    }
+    .alt-card:last-child { margin-bottom: 0; }
+    .alt-body { flex: 1; display: flex; flex-direction: column; gap: .25rem; }
+    .alt-text {
+      font-size: .95rem;
+      line-height: 1.5;
+      color: #2d3748;
+    }
+    .alt-desc {
+      font-size: .78rem;
+      color: #a0aec0;
+      font-style: italic;
+    }
+    .use-alt-btn {
+      background: none;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: .25rem .65rem;
+      font-size: .8rem;
+      color: #718096;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .use-alt-btn:hover { background: #edf2f7; }
+
+    .translate-btn {
+      display: block;
+      width: 100%;
+      padding: .85rem;
+      background: #4299e1;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+
+    .download-btn {
+      display: block;
+      width: 100%;
+      padding: .85rem;
+      background: #38a169;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .download-btn:hover { background: #2f855a; }
+    .download-btn:disabled { background: #a0aec0; cursor: default; }
+    .download-btn.loading #download-label { display: none; }
+    .download-btn.loading #download-spinner { display: block; }
+
+    #download-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+
+    .translate-btn:hover { background: #3182ce; }
+    .translate-btn:active { transform: scale(.99); }
+    .translate-btn:disabled { background: #a0aec0; cursor: default; }
+
+    #spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Translation-pending state ── */
+    #translation-spinner {
+      display: none;
+      width: 13px; height: 13px;
+      border: 2px solid rgba(66,153,225,.25);
+      border-top-color: #4299e1;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    #translation-spinner.active { display: inline-block; }
+    #target-text.translating { opacity: .35; transition: opacity .15s; }
+
+    .translate-btn.loading #btn-label { display: none; }
+    .translate-btn.loading #spinner { display: block; }
+
+    footer {
+      font-size: .8rem;
+      color: #a0aec0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <label for="ui-lang" data-i18n="ui_lang_label">Interface :</label>
+    <select id="ui-lang"></select>
+  </div>
+
+  <header>
+    <h1 data-i18n="app_title">Traduction Gemini Nano</h1>
+    <p data-i18n="app_subtitle">Traduction locale dans Chrome — aucune donnée envoyée sur le réseau</p>
+  </header>
+
+  <div id="api-status"></div>
+
+  <button class="download-btn" id="download-btn" style="display:none">
+    <span id="download-label" data-i18n="download_btn">⬇ Télécharger le modèle Gemini Nano</span>
+    <span id="download-spinner"></span>
+  </button>
+
+  <div class="card">
+    <div class="lang-bar">
+      <label for="source-lang" data-i18n="from_label">De</label>
+      <select id="source-lang"></select>
+      <button class="swap-btn" id="swap-btn" title="⇄"></button>
+      <label for="target-lang" data-i18n="to_label">Vers</label>
+      <select id="target-lang"></select>
+      <label for="register-sel" data-i18n="register_label">Niveau</label>
+      <select id="register-sel"></select>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-header">
+          <span data-i18n="source_panel">Texte source</span>
+          <span id="detected-lang"></span>
+        </div>
+        <textarea id="source-text" data-i18n-placeholder="source_placeholder" autofocus></textarea>
+        <div class="panel-footer">
+          <span id="char-count"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span data-i18n="target_panel">Traduction</span>
+          <span id="translation-spinner"></span>
+        </div>
+        <div id="target-text" class="target-display" data-i18n-placeholder="target_placeholder"></div>
+        <div class="panel-footer">
+          <button class="alt-btn" id="alt-btn" disabled data-i18n="alt_btn">Alternatives</button>
+          <button class="copy-btn" id="copy-btn" disabled data-i18n="copy_btn">Copier</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="alt-section">
+      <div class="alt-section-title" data-i18n="alt_section_title">Alternatives de traduction</div>
+      <div id="alt-list"></div>
+    </div>
+  </div>
+
+  <div id="word-popup">
+    <div class="popup-title" data-i18n="word_alt_title">Alternatives</div>
+    <div id="word-popup-list"></div>
+  </div>
+
+  <button class="translate-btn" id="translate-btn">
+    <span id="btn-label" data-i18n="translate_btn">Traduire</span>
+    <span id="spinner"></span>
+  </button>
+
+  <footer data-i18n="footer_text">Utilise l'API Translator intégrée à Chrome (Gemini Nano) · Fonctionne hors-ligne</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

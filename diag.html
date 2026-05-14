@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chrome AI API Diagnostics</title>
+  <style>
+    body { font-family: monospace; padding: 2rem; background: #0f172a; color: #e2e8f0; }
+    h1 { font-size: 1.2rem; margin-bottom: 1.5rem; color: #94a3b8; }
+    .group { margin-bottom: 1.5rem; }
+    .group-title { color: #64748b; font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .5rem; }
+    .row { display: flex; gap: 1rem; align-items: baseline; padding: .25rem 0; border-bottom: 1px solid #1e293b; }
+    .key { color: #7dd3fc; min-width: 380px; }
+    .val-ok  { color: #4ade80; }
+    .val-no  { color: #f87171; }
+    .val-obj { color: #fbbf24; }
+    .val-fn  { color: #a78bfa; }
+    pre { background: #1e293b; padding: 1rem; border-radius: 6px; overflow: auto; font-size: .8rem; color: #94a3b8; margin-top: 1.5rem; }
+    .hint { margin-top: 1.5rem; background: #1e293b; padding: 1rem; border-radius: 6px; color: #94a3b8; font-size: .85rem; line-height: 1.7; }
+    .hint code { color: #7dd3fc; }
+  </style>
+</head>
+<body>
+  <h1>Chrome Built-in AI — API Diagnostics</h1>
+  <div id="output"></div>
+
+  <script>
+  (async () => {
+    const out = document.getElementById('output');
+
+    function row(key, value) {
+      const d = document.createElement('div');
+      d.className = 'row';
+      let cls, display;
+      if (value === undefined || value === null) {
+        cls = 'val-no'; display = String(value);
+      } else if (typeof value === 'function') {
+        cls = 'val-fn'; display = 'function';
+      } else if (typeof value === 'object') {
+        cls = 'val-obj'; display = '[object]';
+      } else if (typeof value === 'string') {
+        cls = 'val-ok'; display = `"${value}"`;
+      } else {
+        cls = 'val-ok'; display = String(value);
+      }
+      d.innerHTML = `<span class="key">${key}</span><span class="${cls}">${display}</span>`;
+      return d;
+    }
+
+    function group(title, rows) {
+      const g = document.createElement('div');
+      g.className = 'group';
+      g.innerHTML = `<div class="group-title">${title}</div>`;
+      rows.forEach(r => g.appendChild(r));
+      out.appendChild(g);
+    }
+
+    // ── Top-level objects ──────────────────────────────────────────────────
+    group('Top-level AI objects (Chrome 150+ style)', [
+      row("typeof window.LanguageModel",    typeof window.LanguageModel),
+      row("typeof window.LanguageDetector", typeof window.LanguageDetector),
+      row("typeof window.Summarizer",       typeof window.Summarizer),
+      row("typeof window.Writer",           typeof window.Writer),
+      row("typeof window.Rewriter",         typeof window.Rewriter),
+    ]);
+
+    group('Legacy top-level AI objects (pre-150)', [
+      row("'ai' in self",            'ai' in self),
+      row("'translation' in self",   'translation' in self),
+      row("typeof self.ai",          typeof self.ai),
+      row("typeof self.translation", typeof self.translation),
+    ]);
+
+    if (self.ai) {
+      group('self.ai members', [
+        row('self.ai.languageModel',    self.ai.languageModel),
+        row('self.ai.languageDetector', self.ai.languageDetector),
+        row('self.ai.translator',       self.ai.translator),
+        row('self.ai.summarizer',       self.ai.summarizer),
+        row('self.ai.writer',           self.ai.writer),
+        row('self.ai.rewriter',         self.ai.rewriter),
+      ]);
+    }
+
+    // ── LanguageModel availability probe ───────────────────────────────────
+    const lmApi = window.LanguageModel ?? self.ai?.languageModel;
+    if (lmApi) {
+      let avail = '(no availability/capabilities method found)';
+      try {
+        if (typeof lmApi.availability === 'function')
+          avail = await lmApi.availability();
+        else if (typeof lmApi.capabilities === 'function')
+          avail = JSON.stringify(await lmApi.capabilities());
+      } catch(e) { avail = `error: ${e.message}`; }
+      group('LanguageModel availability', [row('availability / capabilities', avail)]);
+    }
+
+    // ── LanguageDetector probe ─────────────────────────────────────────────
+    const ldApi = window.LanguageDetector ?? self.ai?.languageDetector;
+    if (ldApi) {
+      let avail = '(no availability method)';
+      try {
+        if (typeof ldApi.availability === 'function')
+          avail = await ldApi.availability();
+        else if (typeof ldApi.capabilities === 'function')
+          avail = JSON.stringify(await ldApi.capabilities());
+      } catch(e) { avail = `error: ${e.message}`; }
+      group('LanguageDetector availability', [row('availability / capabilities', avail)]);
+    }
+
+    // ── Summary JSON ──────────────────────────────────────────────────────
+    const summary = {
+      userAgent: navigator.userAgent,
+      languages: navigator.languages,
+      hasAi: 'ai' in self,
+      hasTranslation: 'translation' in self,
+      aiKeys: self.ai ? Object.keys(Object.getOwnPropertyDescriptors(self.ai)) : null,
+      translationKeys: self.translation ? Object.keys(Object.getOwnPropertyDescriptors(self.translation)) : null,
+    };
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(summary, null, 2);
+    out.appendChild(pre);
+
+    // ── Scan window for AI-related properties ──────────────────────────────
+    const aiKeywords = ['ai','translation','gemini','nano','llm','language','model','inference','ml'];
+    const found = Object.getOwnPropertyNames(window).filter(k =>
+      aiKeywords.some(kw => k.toLowerCase().includes(kw))
+    );
+    group('window properties matching AI keywords', found.length
+      ? found.map(k => row(`window.${k}`, window[k]))
+      : [row('(none found)', undefined)]
+    );
+
+    // ── chrome.aiOriginTrial ───────────────────────────────────────────────
+    group('chrome.* AI', [
+      row("typeof chrome?.aiOriginTrial", typeof chrome?.aiOriginTrial),
+      row("typeof chrome?.ai",            typeof chrome?.ai),
+    ]);
+
+    // ── Trigger download button ────────────────────────────────────────────
+    const lmApi2 = window.LanguageModel ?? self.ai?.languageModel;
+    if (lmApi2) {
+      const btn = document.createElement('button');
+      btn.textContent = '⬇ Trigger LanguageModel download';
+      btn.style.cssText = 'margin-top:1.5rem;padding:.6rem 1.2rem;background:#3b82f6;color:white;border:none;border-radius:6px;font-family:monospace;font-size:.9rem;cursor:pointer';
+      const log = document.createElement('pre');
+      log.style.cssText = 'background:#1e293b;padding:1rem;border-radius:6px;margin-top:.5rem;font-size:.8rem;color:#94a3b8;white-space:pre-wrap';
+      log.textContent = 'Click the button to trigger model download…';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = '⏳ Creating session…';
+        log.textContent = '';
+        try {
+          const session = await lmApi2.create();
+          log.textContent = '✓ Session created! Model is ready.\n' + JSON.stringify({
+            maxTokens: session.maxTokens,
+            temperature: session.temperature,
+            tokensLeft: session.tokensLeft,
+          }, null, 2);
+          btn.textContent = '✓ Done — reload index.html';
+          session.destroy();
+        } catch(e) {
+          log.textContent = `✗ Error: ${e.message}\n\nThis may mean the model is still downloading.\nCheck chrome://components or wait and retry.`;
+          btn.textContent = '⬇ Retry';
+          btn.disabled = false;
+        }
+      });
+      out.appendChild(btn);
+      out.appendChild(log);
+    }
+
+    // ── Hint ───────────────────────────────────────────────────────────────
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.innerHTML = `
+      <strong>If LanguageModel shows "downloadable":</strong> click the button above to trigger the download.
+      If it fails, open <code>chrome://components</code> and click "Check for update" on any AI/Gemini component,
+      or wait a few minutes and retry.
+    `;
+    out.appendChild(hint);
+  })();
+  </script>
+</body>
+</html>

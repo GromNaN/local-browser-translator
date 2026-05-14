@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Translation Tests — Jasmine</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.3.0/jasmine.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.3.0/jasmine.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.3.0/jasmine-html.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.3.0/boot0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/5.3.0/boot1.min.js"></script>
+  <style>
+    /* Hide default Jasmine HTML reporter — we use our own */
+    .jasmine-html-reporter { display: none !important; }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    /* ── Status bar ── */
+    #lr-bar {
+      position: sticky; top: 0; z-index: 10;
+      background: #1e293b; border-radius: 8px;
+      padding: .7rem 1rem;
+      display: flex; align-items: center; gap: 1rem;
+      font-size: .85rem; border: 1px solid #334155;
+    }
+    #lr-bar .counts { display: flex; gap: .75rem; flex: 1; }
+    #lr-badge { font-weight: 700; font-size: .95rem; }
+    .cnt-pass  { color: #4ade80; }
+    .cnt-fail  { color: #f87171; }
+    .cnt-skip  { color: #64748b; }
+    .cnt-total { color: #94a3b8; }
+    #lr-current {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: #94a3b8; font-size: .8rem; font-style: italic;
+    }
+    #lr-elapsed { color: #475569; font-size: .8rem; font-variant-numeric: tabular-nums; }
+
+    /* ── Progress bar ── */
+    #lr-progress-wrap {
+      background: #1e293b; border-radius: 99px; height: 4px; overflow: hidden;
+    }
+    #lr-progress-bar {
+      height: 100%; width: 0; background: #3b82f6;
+      transition: width .2s, background .3s;
+    }
+
+    /* ── Suites ── */
+    .lr-suite { background: #1e293b; border-radius: 8px; overflow: hidden; }
+    .lr-suite-title {
+      padding: .5rem 1rem;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: #64748b; background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .lr-suite-badge { font-size: .7rem; font-weight: 600; padding: .1rem .45rem;
+      border-radius: 99px; background: #1e293b; }
+
+    /* ── Spec rows ── */
+    .lr-spec {
+      display: grid;
+      grid-template-columns: 1.3rem 1fr auto;
+      align-items: start; gap: .5rem;
+      padding: .5rem 1rem;
+      border-bottom: 1px solid #0f172a;
+      font-size: .85rem; line-height: 1.5;
+      transition: background .15s;
+    }
+    .lr-spec:last-child { border-bottom: none; }
+    .lr-spec.pending  { background: #1e293b; color: #475569; }
+    .lr-spec.running  { background: #1c1f14; }
+    .lr-spec.passed   { background: #0a1a10; }
+    .lr-spec.failed   { background: #1a0a0a; }
+
+    .lr-icon { line-height: 1.5; }
+    .lr-name { color: #cbd5e0; }
+    .lr-spec.pending .lr-name { color: #475569; }
+    .lr-dur { font-size: .72rem; color: #475569; white-space: nowrap;
+      font-variant-numeric: tabular-nums; }
+
+    .lr-error {
+      grid-column: 2 / -1; margin-top: .3rem;
+      font-family: monospace; font-size: .78rem; white-space: pre-wrap;
+      color: #fca5a5; background: #2d0f0f;
+      padding: .5rem .75rem; border-radius: 4px;
+    }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid #334155; border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+    }
+
+    /* ── Done banner ── */
+    #lr-done {
+      padding: .75rem 1rem; border-radius: 8px;
+      font-weight: 600; font-size: .95rem; text-align: center;
+      display: none;
+    }
+    #lr-done.ok   { background: #0a1a10; color: #4ade80; border: 1px solid #166534; }
+    #lr-done.fail { background: #1a0a0a; color: #f87171; border: 1px solid #991b1b; }
+  </style>
+</head>
+<body>
+  <!-- Live reporter UI -->
+  <div id="lr-bar">
+    <span id="lr-badge" class="cnt-total">…</span>
+    <div class="counts">
+      <span id="lr-pass"  class="cnt-pass">✓ 0</span>
+      <span id="lr-fail"  class="cnt-fail">✗ 0</span>
+      <span id="lr-skip"  class="cnt-skip">— 0</span>
+      <span id="lr-tot"   class="cnt-total">/ 0</span>
+    </div>
+    <span id="lr-current"></span>
+    <span id="lr-elapsed">0.0s</span>
+  </div>
+  <div id="lr-progress-wrap"><div id="lr-progress-bar"></div></div>
+  <div id="lr-suites"></div>
+  <div id="lr-done"></div>
+<script>
+// ── Live reporter ─────────────────────────────────────────────────────────────
+
+const liveReporter = (() => {
+  const suitesEl  = document.getElementById('lr-suites');
+  const barEl     = document.getElementById('lr-bar');
+  const badgeEl   = document.getElementById('lr-badge');
+  const passEl    = document.getElementById('lr-pass');
+  const failEl    = document.getElementById('lr-fail');
+  const skipEl    = document.getElementById('lr-skip');
+  const totEl     = document.getElementById('lr-tot');
+  const curEl     = document.getElementById('lr-current');
+  const elapsedEl = document.getElementById('lr-elapsed');
+  const progressEl= document.getElementById('lr-progress-bar');
+  const doneEl    = document.getElementById('lr-done');
+
+  let total = 0, passed = 0, failed = 0, skipped = 0;
+  let startTime = 0, timerID = null;
+  const suiteEls  = new Map(); // suiteId → { wrapEl, badgeEl }
+  const specEls   = new Map(); // specId  → rowEl
+
+  function tick() {
+    elapsedEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+  }
+
+  function updateCounts() {
+    const done = passed + failed + skipped;
+    passEl.textContent  = `✓ ${passed}`;
+    failEl.textContent  = `✗ ${failed}`;
+    skipEl.textContent  = `— ${skipped}`;
+    totEl.textContent   = `/ ${total}`;
+    badgeEl.textContent = `${done} / ${total}`;
+    badgeEl.className   = failed > 0 ? 'cnt-fail' : done === total ? 'cnt-pass' : 'cnt-total';
+    const pct = total ? (done / total) * 100 : 0;
+    progressEl.style.width    = pct + '%';
+    progressEl.style.background = failed > 0 ? '#ef4444' : '#3b82f6';
+  }
+
+  return {
+    jasmineStarted(info) {
+      total = info.totalSpecsDefined ?? 0;
+      startTime = Date.now();
+      timerID = setInterval(tick, 100);
+      updateCounts();
+    },
+
+    suiteStarted(result) {
+      const wrap = document.createElement('div');
+      wrap.className = 'lr-suite';
+
+      const title = document.createElement('div');
+      title.className = 'lr-suite-title';
+      title.innerHTML = `<span>${result.fullName}</span><span class="lr-suite-badge cnt-total">—</span>`;
+      wrap.appendChild(title);
+      suitesEl.appendChild(wrap);
+      suiteEls.set(result.id, { wrapEl: wrap, badgeEl: title.querySelector('.lr-suite-badge') });
+    },
+
+    specStarted(result) {
+      curEl.textContent = result.fullName;
+
+      // Find parent suite wrap (walk up to nearest suite)
+      let parentWrap = suitesEl.lastElementChild;
+      if (result.parentSuiteId && suiteEls.has(result.parentSuiteId))
+        parentWrap = suiteEls.get(result.parentSuiteId).wrapEl;
+
+      const row = document.createElement('div');
+      row.className = 'lr-spec running';
+      row.innerHTML = `
+        <span class="lr-icon"><span class="spin"></span></span>
+        <span class="lr-name">${result.description}</span>
+        <span class="lr-dur"></span>`;
+      parentWrap.appendChild(row);
+      specEls.set(result.id, row);
+
+      // Scroll into view
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    },
+
+    specDone(result) {
+      const row = specEls.get(result.id);
+      if (!row) return;
+
+      const dur  = result.duration != null ? `${result.duration}ms` : '';
+      const icon = result.status === 'passed'  ? '<span style="color:#4ade80">✓</span>'
+                 : result.status === 'failed'  ? '<span style="color:#f87171">✗</span>'
+                 : result.status === 'pending' ? '<span style="color:#64748b">—</span>'
+                 : '?';
+
+      row.className = `lr-spec ${result.status === 'passed' ? 'passed' : result.status === 'failed' ? 'failed' : 'pending'}`;
+      row.querySelector('.lr-icon').innerHTML = icon;
+      row.querySelector('.lr-dur').textContent  = dur;
+
+      if (result.status === 'failed') {
+        result.failedExpectations?.forEach(exp => {
+          const err = document.createElement('div');
+          err.className = 'lr-error';
+          err.textContent = exp.message;
+          row.appendChild(err);
+        });
+        failed++;
+      } else if (result.status === 'pending' || result.status === 'excluded') {
+        skipped++;
+      } else {
+        passed++;
+      }
+
+      // Update parent suite badge
+      if (result.parentSuiteId && suiteEls.has(result.parentSuiteId)) {
+        const { badgeEl } = suiteEls.get(result.parentSuiteId);
+        const suiteRows = [...suiteEls.get(result.parentSuiteId).wrapEl
+          .querySelectorAll('.lr-spec:not(.running):not(.pending)')];
+        const f = suiteRows.filter(r => r.classList.contains('failed')).length;
+        const p = suiteRows.filter(r => r.classList.contains('passed')).length;
+        badgeEl.textContent = f > 0 ? `✗ ${f} failed` : `✓ ${p} passed`;
+        badgeEl.className = `lr-suite-badge ${f > 0 ? 'cnt-fail' : 'cnt-pass'}`;
+      }
+
+      curEl.textContent = '';
+      updateCounts();
+    },
+
+    jasmineDone(result) {
+      clearInterval(timerID);
+      tick();
+      curEl.textContent = '';
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      doneEl.style.display = 'block';
+      if (result.overallStatus === 'passed') {
+        doneEl.className = 'ok';
+        doneEl.textContent = `✓ All ${passed} specs passed in ${elapsed}s`;
+      } else {
+        doneEl.className = 'fail';
+        doneEl.textContent = `✗ ${failed} failed, ${passed} passed — ${elapsed}s`;
+      }
+      progressEl.style.width = '100%';
+      progressEl.style.background = failed > 0 ? '#ef4444' : '#22c55e';
+      updateCounts();
+    },
+  };
+})();
+
+jasmine.getEnv().addReporter(liveReporter);
+
+// ── Functions under test (inlined — app.js has DOM side-effects on load) ─────
+
+const HELLO = {
+  en: 'Hello',  fr: 'Bonjour', de: 'Hallo',    es: 'Hola',
+  it: 'Ciao',   pt: 'Olá',     nl: 'Hallo',     ru: 'Привет',
+  zh: '你好',   ja: 'こんにちは', ko: '안녕하세요', ar: 'مرحبا',
+  tr: 'Merhaba', pl: 'Cześć',  uk: 'Привіт',
+};
+
+function makeSystemPrompt(srcCode, tgtCode) {
+  return (
+    `You are a translation engine. Translate from ${srcCode} to ${tgtCode}. ` +
+    'The user sends <translate>text</translate>. ' +
+    'You respond with the translated text ONLY — no tags, no "The translation is", ' +
+    'no "Here is", no bullet points, no explanations, no breakdown. ' +
+    'Just the translated words, nothing else.'
+  );
+}
+
+function makeFewShotPrompts(srcCode, tgtCode) {
+  const srcHello = HELLO[srcCode] ?? 'Hello';
+  const tgtHello = HELLO[tgtCode];
+  if (!tgtHello || srcHello === tgtHello) return [];
+  return [
+    { role: 'user',      content: `<translate>${srcHello}</translate>` },
+    { role: 'assistant', content: tgtHello },
+  ];
+}
+
+function makeTranslationPrompt(text) {
+  return `<translate>${text}</translate>`;
+}
+
+function accumulateChunks(chunks) {
+  let result = '';
+  for (const chunk of chunks) {
+    if (result && chunk.startsWith(result)) result = chunk;
+    else result += chunk;
+  }
+  return result;
+}
+
+function normalizeAvailability(value) {
+  if (value === 'available')                               return 'readily';
+  if (value === 'downloadable' || value === 'downloading') return 'after-download';
+  if (['readily', 'after-download', 'no'].includes(value)) return value;
+  return 'no';
+}
+
+// Increase timeout for LLM calls (default 5s is too short)
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 60_000;
+
+// ── Unit tests ────────────────────────────────────────────────────────────────
+
+describe('makeSystemPrompt()', () => {
+  it('returns a non-empty string', () => {
+    expect(makeSystemPrompt('en', 'fr').length).toBeGreaterThan(0);
+  });
+  it('contains both language codes', () => {
+    const p = makeSystemPrompt('en', 'fr');
+    expect(p).toContain('en');
+    expect(p).toContain('fr');
+  });
+  it('instructs to output only the translation', () => {
+    expect(makeSystemPrompt('en', 'fr')).toContain('only');
+  });
+  it('forbids explanations', () => {
+    expect(makeSystemPrompt('en', 'fr').toLowerCase()).toContain('explanation');
+  });
+  it('varies with language codes', () => {
+    expect(makeSystemPrompt('en', 'fr')).not.toBe(makeSystemPrompt('en', 'de'));
+  });
+});
+
+describe('makeTranslationPrompt()', () => {
+  it('wraps text in <translate> tags', () => {
+    expect(makeTranslationPrompt('Hello')).toBe('<translate>Hello</translate>');
+  });
+  it('preserves text content inside tags', () => {
+    expect(makeTranslationPrompt('Hello world')).toContain('Hello world');
+  });
+  it('preserves multiline text', () => {
+    const text = 'Line one\nLine two';
+    expect(makeTranslationPrompt(text)).toBe(`<translate>${text}</translate>`);
+  });
+  it('preserves unicode', () => {
+    expect(makeTranslationPrompt('こんにちは')).toContain('こんにちは');
+  });
+  it('empty string → empty tags', () => {
+    expect(makeTranslationPrompt('')).toBe('<translate></translate>');
+  });
+  it('does not use BCP 47 bracket tags', () => {
+    const r = makeTranslationPrompt('Hello');
+    expect(r).not.toContain('[en]');
+    expect(r).not.toContain('[fr]');
+  });
+});
+
+describe('makeFewShotPrompts()', () => {
+  it('returns two turns for a known pair', () => {
+    const prompts = makeFewShotPrompts('en', 'fr');
+    expect(prompts.length).toBe(2);
+  });
+  it('first turn is user role with <translate> wrapper', () => {
+    const [user] = makeFewShotPrompts('en', 'fr');
+    expect(user.role).toBe('user');
+    expect(user.content).toBe('<translate>Hello</translate>');
+  });
+  it('second turn is assistant role with target translation', () => {
+    const [, assistant] = makeFewShotPrompts('en', 'fr');
+    expect(assistant.role).toBe('assistant');
+    expect(assistant.content).toBe('Bonjour');
+  });
+  it('uses source language hello as input', () => {
+    const [user] = makeFewShotPrompts('fr', 'en');
+    expect(user.content).toBe('<translate>Bonjour</translate>');
+  });
+  it('returns [] when target language unknown', () => {
+    expect(makeFewShotPrompts('en', 'xx').length).toBe(0);
+  });
+  it('returns [] when src and tgt hello are identical', () => {
+    // nl and de both have "Hallo" — no useful example
+    expect(makeFewShotPrompts('nl', 'de').length).toBe(0);
+  });
+});
+
+describe('Chunk accumulation', () => {
+  it('full-text mode: last chunk is the result', () => {
+    expect(accumulateChunks(['Bon', 'Bonjo', 'Bonjour', 'Bonjour !'])).toBe('Bonjour !');
+  });
+  it('delta mode: chunks are concatenated', () => {
+    expect(accumulateChunks(['Bon', 'jo', 'ur', ' !'])).toBe('Bonjour !');
+  });
+  it('single chunk returns that chunk', () => {
+    expect(accumulateChunks(['Hola'])).toBe('Hola');
+  });
+  it('empty array returns empty string', () => {
+    expect(accumulateChunks([])).toBe('');
+  });
+  it('mixed: switches from delta to full-text mid-stream', () => {
+    expect(accumulateChunks(['Hel', 'Hello', 'Hello world'])).toBe('Hello world');
+  });
+  it('preserves unicode (CJK, Arabic)', () => {
+    expect(accumulateChunks(['你好', '你好世界'])).toBe('你好世界');
+  });
+});
+
+describe('Availability normalisation', () => {
+  it('"available"     → "readily"',        () => expect(normalizeAvailability('available')).toBe('readily'));
+  it('"downloadable"  → "after-download"', () => expect(normalizeAvailability('downloadable')).toBe('after-download'));
+  it('"downloading"   → "after-download"', () => expect(normalizeAvailability('downloading')).toBe('after-download'));
+  it('"unavailable"   → "no"',             () => expect(normalizeAvailability('unavailable')).toBe('no'));
+  it('"readily"       passes through',     () => expect(normalizeAvailability('readily')).toBe('readily'));
+  it('"after-download" passes through',    () => expect(normalizeAvailability('after-download')).toBe('after-download'));
+  it('"no"            passes through',     () => expect(normalizeAvailability('no')).toBe('no'));
+  it('unknown value   → "no"',             () => expect(normalizeAvailability('something-else')).toBe('no'));
+});
+
+// ── Integration tests (require Chrome AI API) ─────────────────────────────────
+
+describe('API availability (integration)', () => {
+  it('window.LanguageModel is a function', () => {
+    expect(typeof window.LanguageModel).toBe('function');
+  });
+  it('window.LanguageDetector is a function', () => {
+    expect(typeof window.LanguageDetector).toBe('function');
+  });
+  it('LanguageModel.availability() returns a known value', async () => {
+    const v = await window.LanguageModel.availability();
+    expect(['available','downloadable','downloading','unavailable']).toContain(v);
+  });
+  it('LanguageDetector.availability() returns a known value', async () => {
+    const v = await window.LanguageDetector.availability();
+    expect(['available','downloadable','downloading','unavailable']).toContain(v);
+  });
+});
+
+describe('Language detection (integration)', () => {
+  async function detect(text) {
+    const detector = await window.LanguageDetector.create();
+    const results = await detector.detect(text);
+    detector.destroy?.();
+    return results?.[0]?.detectedLanguage?.split('-')[0] ?? null;
+  }
+
+  it('detects English',  async () => expect(await detect('The quick brown fox jumps over the lazy dog')).toBe('en'));
+  it('detects French',   async () => expect(await detect('Le renard rapide saute par-dessus le chien')).toBe('fr'));
+  it('detects Spanish',  async () => expect(await detect('El zorro rápido salta sobre el perro perezoso')).toBe('es'));
+  it('detects German',   async () => expect(await detect('Der schnelle braune Fuchs springt über den faulen Hund')).toBe('de'));
+  it('detects Japanese', async () => expect(await detect('すもももももももものうち')).toBe('ja'));
+  it('detects Chinese',  async () => expect(await detect('今天天气很好，我们去公园吧')).toBe('zh'));
+  it('detects Arabic',   async () => expect(await detect('الثعلب البني السريع يقفز فوق الكلب الكسول')).toBe('ar'));
+});
+
+// Helper: stream a prompt through a session
+async function streamPrompt(session, text) {
+  let result = '';
+  for await (const chunk of session.promptStreaming(makeTranslationPrompt(text))) {
+    result = (result && chunk.startsWith(result)) ? chunk : result + chunk;
+  }
+  return result.trim();
+}
+
+// Helper: create a fresh session for a language pair
+function createSession(src, tgt) {
+  return window.LanguageModel.create({
+    systemPrompt:            makeSystemPrompt(src, tgt),
+    initialPrompts:          makeFewShotPrompts(src, tgt),
+    expectedInputLanguages:  [src],
+    expectedOutputLanguages: [tgt],
+  });
+}
+
+// Each test gets a fresh session — shared sessions accumulate conversation
+// history which causes the model to drift from translation into chat mode.
+
+describe('Translation prompt (integration) — en→fr', () => {
+  let session;
+  beforeEach(async () => { session = await createSession('en', 'fr'); });
+  afterEach(() => { session?.destroy(); session = null; });
+
+  it('result is non-empty', async () => {
+    expect((await streamPrompt(session, 'Hello')).length).toBeGreaterThan(0);
+  });
+  it('no chatbot preamble', async () => {
+    const r = (await streamPrompt(session, 'The cat sits on the mat.')).toLowerCase();
+    expect(r).not.toContain('here is');
+    expect(r).not.toContain('translation:');
+  });
+  it('does not echo BCP 47 tags', async () => {
+    const r = await streamPrompt(session, 'Good evening');
+    expect(r).not.toContain('[en]');
+    expect(r).not.toContain('[fr]');
+  });
+  it('output does not start with "["', async () => {
+    expect(await streamPrompt(session, 'Water')).not.toMatch(/^\[/);
+  });
+  it('preserves numbers', async () => {
+    expect(await streamPrompt(session, 'There are 42 cats.')).toContain('42');
+  });
+});
+
+describe('Translation prompt (integration) — fr→en', () => {
+  let session;
+  beforeEach(async () => { session = await createSession('fr', 'en'); });
+  afterEach(() => { session?.destroy(); session = null; });
+
+  it('"Bonjour" → English greeting', async () => {
+    const r = (await streamPrompt(session, 'Bonjour')).toLowerCase();
+    expect(r).toMatch(/hello|hi\b|hey\b|good (morning|afternoon|evening|day)|greetings/);
+  });
+  it('"Merci beaucoup" → "thank"', async () => {
+    expect((await streamPrompt(session, 'Merci beaucoup')).toLowerCase()).toContain('thank');
+  });
+  it('preserves numbers', async () => {
+    expect(await streamPrompt(session, 'J\'ai 42 pommes.')).toContain('42');
+  });
+});
+
+describe('Translation prompt (integration) — en→es', () => {
+  let session;
+  beforeEach(async () => { session = await createSession('en', 'es'); });
+  afterEach(() => { session?.destroy(); session = null; });
+
+  it('"Good morning" → non-empty', async () => {
+    expect((await streamPrompt(session, 'Good morning')).length).toBeGreaterThan(0);
+  });
+  it('"Thank you" → "gracias"', async () => {
+    expect((await streamPrompt(session, 'Thank you')).toLowerCase()).toContain('graci');
+  });
+});
+
+describe('Translation prompt (integration) — en→de', () => {
+  let session;
+  beforeEach(async () => { session = await createSession('en', 'de'); });
+  afterEach(() => { session?.destroy(); session = null; });
+
+  it('"Thank you very much" → non-empty', async () => {
+    expect((await streamPrompt(session, 'Thank you very much')).length).toBeGreaterThan(0);
+  });
+  it('"Good morning" → translated (different from source)', async () => {
+    const r = await streamPrompt(session, 'Good morning');
+    expect(r.trim().length).toBeGreaterThan(0);
+    expect(r.trim().toLowerCase()).not.toBe('good morning');
+  });
+});
+</script>
+</body>
+</html>
