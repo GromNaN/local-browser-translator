@@ -1,6 +1,6 @@
 # Gemini Nano Translator
 
-Local in-browser translation using Chrome's built-in [Prompt API](https://developer.chrome.com/docs/ai/built-in) (Gemini Nano). No server, no API key, no data leaves your machine.
+Local in-browser translation using Chrome's built-in [Prompt API](https://developer.chrome.com/docs/ai) (Gemini Nano). No server, no API key, no data leaves your machine.
 
 ## Requirements
 
@@ -29,5 +29,5 @@ Local in-browser translation using Chrome's built-in [Prompt API](https://develo
 
 ## Live demo
 
-[https://jérôme.github.io/translation-gemini-nano](https://jerome.github.io/translation-gemini-nano)
+[https://GromNaN.github.io/local-browser-translator](https://GromNaN.github.io/local-browser-translator)
 *(requires Chrome with the Prompt API enabled)*
