@@ -37,6 +37,7 @@ I18N.fr = {
   word_alt_title: 'Alternatives',
   word_alt_loading: 'Chargement…',
   use_alt_btn: 'Utiliser',
+  swap_btn: '⇄ Inverser',
 };
 I18N.en = {
   _label: 'English',
@@ -75,6 +76,7 @@ I18N.en = {
   word_alt_title: 'Alternatives',
   word_alt_loading: 'Loading…',
   use_alt_btn: 'Use',
+  swap_btn: '⇄ Swap',
 };
 I18N.de = {
   _label: 'Deutsch',
@@ -113,6 +115,7 @@ I18N.de = {
   word_alt_title: 'Alternativen',
   word_alt_loading: 'Laden…',
   use_alt_btn: 'Verwenden',
+  swap_btn: '⇄ Tauschen',
 };
 I18N.es = {
   _label: 'Español',
@@ -151,6 +154,7 @@ I18N.es = {
   word_alt_title: 'Alternativas',
   word_alt_loading: 'Cargando…',
   use_alt_btn: 'Usar',
+  swap_btn: '⇄ Invertir',
 };
 I18N.pt = {
   _label: 'Português',
@@ -189,6 +193,7 @@ I18N.pt = {
   word_alt_title: 'Alternativas',
   word_alt_loading: 'Carregando…',
   use_alt_btn: 'Usar',
+  swap_btn: '⇄ Inverter',
 };
 I18N.it = {
   _label: 'Italiano',
@@ -227,6 +232,7 @@ I18N.it = {
   word_alt_title: 'Alternative',
   word_alt_loading: 'Caricamento…',
   use_alt_btn: 'Usa',
+  swap_btn: '⇄ Inverti',
 };
 I18N.nl = {
   _label: 'Nederlands',
@@ -265,6 +271,7 @@ I18N.nl = {
   word_alt_title: 'Alternatieven',
   word_alt_loading: 'Laden…',
   use_alt_btn: 'Gebruiken',
+  swap_btn: '⇄ Wisselen',
 };
 I18N.pl = {
   _label: 'Polski',
@@ -303,4 +310,5 @@ I18N.pl = {
   word_alt_title: 'Alternatywy',
   word_alt_loading: 'Ładowanie…',
   use_alt_btn: 'Użyj',
+  swap_btn: '⇄ Zamień',
 };
